@@ -16,6 +16,18 @@ const LOGIN_TABS = [
 
 type LoginTab = (typeof LOGIN_TABS)[number]['id']
 
+/** Row shape from `profiles` (incl. lock fields); explicit type avoids `as typeof profile` inferring `never`. */
+type LoginProfile = {
+  id: string
+  email: string | null
+  full_name: string
+  role: string
+  gym_id: string | null
+  avatar_url: string | null
+  is_locked?: boolean
+  locked_reason?: string | null
+}
+
 export function LoginForm() {
   const [activeTab, setActiveTab] = useState<LoginTab>('owner')
   const [form, setForm] = useState({ email: '', password: '', remember: false })
@@ -36,21 +48,12 @@ export function LoginForm() {
 
       if (authError) throw authError
 
-      let profile: {
-        id: string
-        email: string | null
-        full_name: string
-        role: string
-        gym_id: string | null
-        avatar_url: string | null
-        is_locked?: boolean
-        locked_reason?: string | null
-      } | null = null
+      let profile: LoginProfile | null = null
       let profileError = null as unknown
 
       {
         const res = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
-        profile = res.data as typeof profile
+        profile = res.data as LoginProfile | null
         profileError = res.error
       }
 
@@ -65,7 +68,7 @@ export function LoginForm() {
         })
         if (insertError) throw insertError
         const res2 = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
-        profile = res2.data as typeof profile
+        profile = res2.data as LoginProfile | null
         profileError = res2.error
       }
 

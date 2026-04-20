@@ -38,6 +38,31 @@ interface CheckoutParams {
   onDismiss?: () => void
 }
 
+type RazorpayPaymentResponse = {
+  razorpay_order_id: string
+  razorpay_payment_id: string
+  razorpay_signature: string
+}
+
+type RazorpayConstructor = new (options: {
+  key: string
+  amount: number
+  currency: string
+  name: string
+  description: string
+  order_id: string
+  prefill?: CheckoutParams['prefill']
+  theme: { color: string }
+  handler: (response: RazorpayPaymentResponse) => void | Promise<void>
+  modal: { ondismiss: () => void }
+}) => { open: () => void }
+
+function getRazorpayConstructor(): RazorpayConstructor {
+  const w = window as Window & { Razorpay?: RazorpayConstructor }
+  if (!w.Razorpay) throw new Error('Razorpay SDK not loaded')
+  return w.Razorpay
+}
+
 export function useRazorpay() {
   const busyRef = useRef(false)
 
@@ -65,8 +90,7 @@ export function useRazorpay() {
         plan_duration_months: number
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Rzp = (window as any).Razorpay
+      const Rzp = getRazorpayConstructor()
       const rzp = new Rzp({
         key: RAZORPAY_KEY,
         // INR subunits (paise); must match Orders API (GST-inclusive total from edge function).

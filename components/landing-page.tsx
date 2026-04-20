@@ -576,7 +576,7 @@ export function LandingPage({
 
                       <button
                         type="button"
-                        onClick={() => handleBuyPlan(plan)}
+                        onClick={() => handleBuyPlan(plan as any)}
                         className={cn(
                           'mt-6 w-full py-3 rounded-xl font-semibold text-sm transition-colors',
                           popular
