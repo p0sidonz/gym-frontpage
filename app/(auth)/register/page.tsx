@@ -1,5 +1,3 @@
-/* disable eslint for this file */
-/* eslint-disable */
 import { RegisterForm } from '@/components/auth/register-form'
 import { Suspense } from 'react'
 
@@ -8,5 +6,15 @@ export const metadata = {
 }
 
 export default function RegisterPage() {
-  return <Suspense fallback={<div>Loading...</div>}></Suspense> 
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-12">
+          <p className="text-sm text-muted-foreground">Loading registration…</p>
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
+  )
 }
