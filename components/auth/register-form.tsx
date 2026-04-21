@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, edgeFunctionAnonHeaders } from '@/lib/supabase'
 import { appHandoffUrl, getAppOrigin } from '@/lib/app-url'
-import { Eye, EyeOff, Loader2, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { Eye, EyeOff, Loader2, ChevronLeft, ChevronRight, Check, Info } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { applyDemoTrialForGymOwner } from '@/lib/demo-trial-gym'
@@ -380,6 +380,16 @@ export function RegisterForm() {
               </select>
             </div>
 
+            {form.role === 'gym_owner' && (
+              <div className="p-3 rounded-lg bg-brand-500/10 border border-brand-500/25 text-sm text-foreground/90 flex gap-2.5">
+                <Info className="w-4 h-4 flex-shrink-0 text-brand-400 mt-0.5" aria-hidden />
+                <p>
+                  <span className="font-medium text-foreground">New user?</span> As a gym owner, your{' '}
+                  <span className="font-medium text-foreground">90-day demo</span> is activated after you verify your email and sign in — full access to the product, no payment required.
+                </p>
+              </div>
+            )}
+
             {form.role === 'staff' && <Field id="reg-invite" label="Invite Code" {...f('invite_code')} placeholder="Enter your invite code" />}
           </motion.div>
         )}
@@ -435,9 +445,11 @@ export function RegisterForm() {
               We&apos;ve sent a verification email to <strong className="text-foreground">{form.email}</strong>.
             </p>
             {form.role === 'gym_owner' && (
-              <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-medium flex items-center gap-2">
-                <Check className="w-4 h-4 flex-shrink-0" />
-                After you verify and log in, your gym gets a 90-day free demo — full access, no payment.
+              <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm flex items-start gap-2">
+                <Check className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
+                <span>
+                  Next step: verify your email, then sign in. As a new user, your <strong className="font-semibold">90-day demo</strong> will be activated for your gym — full access, no card required.
+                </span>
               </div>
             )}
             <button
