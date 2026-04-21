@@ -88,16 +88,19 @@ export function useRazorpay() {
         currency: string
         plan_name: string
         plan_duration_months: number
+        gst_enabled?: boolean
       }
+      const gstOn = od.gst_enabled !== false
+      const periodLabel = od.plan_duration_months >= 12 ? `1 year${gstOn ? ' (incl. GST)' : ''}` : `${od.plan_duration_months} mo`
 
       const Rzp = getRazorpayConstructor()
       const rzp = new Rzp({
         key: RAZORPAY_KEY,
-        // INR subunits (paise); must match Orders API (GST-inclusive total from edge function).
+        // INR subunits (paise); matches Orders API (GST-inclusive or base, per platform_settings.gst_enabled).
         amount: Math.round(Number(od.amount)),
         currency: od.currency,
         name: 'Fetch Fitness',
-        description: `${od.plan_name} — ${od.plan_duration_months >= 12 ? '1 year (incl. GST)' : `${od.plan_duration_months} mo`}`,
+        description: `${od.plan_name} — ${periodLabel}`,
         order_id: od.order_id,
         prefill: params.prefill,
         theme: { color: '#6366f1' },

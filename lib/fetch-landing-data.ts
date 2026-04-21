@@ -35,6 +35,22 @@ export async function getLandingFeatureCards(): Promise<LandingFeatureCardRow[]>
   return (data || []) as LandingFeatureCardRow[]
 }
 
+export async function getPlatformGstSettings(): Promise<{ gst_enabled: boolean; platform_gstin: string | null }> {
+  const supabase = createServerSupabase()
+  if (!supabase) return { gst_enabled: true, platform_gstin: null }
+
+  const { data, error } = await supabase.rpc('get_platform_gst_settings')
+  if (error) {
+    console.error('[landing] get_platform_gst_settings', error.message)
+    return { gst_enabled: true, platform_gstin: null }
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    gst_enabled: (row as { gst_enabled?: boolean })?.gst_enabled !== false,
+    platform_gstin: (row as { platform_gstin?: string | null })?.platform_gstin ?? null,
+  }
+}
+
 export async function getPublicSubscriptionPlans(): Promise<SubscriptionPlanRow[]> {
   const supabase = createServerSupabase()
   if (!supabase) return []

@@ -25,7 +25,7 @@ import {
   CheckCircle2,
   MessageSquare,
 } from 'lucide-react'
-import { cn, formatSubscriptionBillingSuffix, subscriptionTotalWithGst } from '@/lib/utils'
+import { cn, formatSubscriptionBillingSuffix, subscriptionChargeTotal } from '@/lib/utils'
 import { publicPricingFeatureLines } from '@/lib/subscriptionPlanFeatures'
 
 function LandingFeatureIcon({ name, className }: { name: string; className?: string }) {
@@ -209,9 +209,12 @@ function LandingEnquiryForm({
 export function LandingPage({
   plans,
   featureCards,
+  gstEnabled = true,
 }: {
   plans: SubscriptionPlanRow[]
   featureCards: LandingFeatureCardRow[]
+  /** From platform_settings — when false, pricing shows no GST line. */
+  gstEnabled?: boolean
 }) {
   const router = useRouter()
   const [mobileNav, setMobileNav] = useState(false)
@@ -432,7 +435,9 @@ export function LandingPage({
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold">Demo & yearly plans</h2>
-            <p className="mt-3 text-muted-foreground">90-day demo at no charge, then yearly tiers (excl. GST). Upgrade anytime.</p>
+            <p className="mt-3 text-muted-foreground">
+              90-day demo at no charge, then yearly tiers{gstEnabled ? ' (excl. GST, 18% at checkout)' : ''}. Upgrade anytime.
+            </p>
           </div>
 
           <Tooltip.Provider delayDuration={200}>
@@ -503,7 +508,7 @@ export function LandingPage({
                           <>
                             <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
                               <span className="text-3xl font-extrabold text-foreground">{formatPrice(plan.price)}</span>
-                              <span className="text-sm text-muted-foreground">+ GST (18%)</span>
+                              {gstEnabled && <span className="text-sm text-muted-foreground">+ GST (18%)</span>}
                               <span className="text-sm text-muted-foreground">{formatSubscriptionBillingSuffix(Number(plan.duration_months))}</span>
                             </div>
                             {memberCap !== null && Number.isFinite(memberCap) && (
@@ -523,7 +528,8 @@ export function LandingPage({
                               </p>
                             )}
                             <p className="text-xs text-muted-foreground">
-                              Total {formatPrice(subscriptionTotalWithGst(Number(plan.price)))} incl. GST
+                              Total {formatPrice(subscriptionChargeTotal(Number(plan.price), gstEnabled))}
+                              {gstEnabled ? ' incl. GST' : ''}
                               {Number(plan.duration_months) >= 12 ? ' · 365 days' : ''}
                             </p>
                           </>
