@@ -691,7 +691,7 @@ export function LandingPage({
       </section>
 
       <footer className="border-t border-border py-12 px-4 sm:px-6 bg-black/5 dark:bg-white/[0.02]">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
@@ -724,6 +724,20 @@ export function LandingPage({
               <button type="button" onClick={() => scrollTo('contact')} className="block text-xs text-muted-foreground hover:text-foreground">
                 Contact
               </button>
+            </div>
+          </div>
+          <div>
+            <h4 className="font-semibold text-foreground text-sm mb-3">Legal</h4>
+            <div className="space-y-2">
+              <Link href="/support" className="block text-xs text-muted-foreground hover:text-foreground">
+                Support
+              </Link>
+              <Link href="/terms" className="block text-xs text-muted-foreground hover:text-foreground">
+                Terms of Service
+              </Link>
+              <Link href="/privacy" className="block text-xs text-muted-foreground hover:text-foreground">
+                Privacy Policy
+              </Link>
             </div>
           </div>
           <div>
