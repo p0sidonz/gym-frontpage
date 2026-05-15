@@ -12,6 +12,7 @@ export type SubscriptionPlanRow = {
   id: string
   name: string
   price: number
+  price_usd?: number | null
   duration_months: number
   features?: Record<string, unknown> | null
   max_members?: number | null

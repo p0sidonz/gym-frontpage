@@ -3,10 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRazorpay } from '@/lib/use-razorpay'
 import { appHandoffUrl, getAppOrigin } from '@/lib/app-url'
-import { cn, formatSubscriptionBillingSuffix, subscriptionTotalWithGst } from '@/lib/utils'
+import { cn, formatSubscriptionBillingSuffix } from '@/lib/utils'
+import { getPaymentProvider } from '@/lib/payment-provider'
+import { usePricingRegion } from '@/lib/use-pricing-region'
+import { formatPlanMoney, planChargeTotal, planIsDemo, planListAmount } from '@/lib/plan-pricing'
 import { Eye, EyeOff, Loader2, ChevronLeft, ChevronRight, Check, CreditCard } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -95,11 +99,25 @@ export function CheckoutForm() {
   const searchParams = useSearchParams()
   const planId = searchParams.get('planId') || ''
   const { checkout } = useRazorpay()
+  const { region: pricingRegion, ready: pricingReady } = usePricingRegion()
+  const showInr = pricingRegion === 'IN'
+
+  const { data: platformGst } = useQuery({
+    queryKey: ['platform_gst_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_platform_gst_settings')
+      if (error) throw error
+      const row = Array.isArray(data) ? data[0] : data
+      return { gstEnabled: (row as { gst_enabled?: boolean })?.gst_enabled !== false }
+    },
+  })
+  const gstEnabled = platformGst?.gstEnabled !== false
 
   const [plan, setPlan] = useState<{
     id: string
     name: string
     price: number
+    price_usd?: number | null
     duration_months: number
     features: Record<string, unknown> | null
   } | null>(null)
@@ -126,9 +144,12 @@ export function CheckoutForm() {
         setPlan(null)
         return
       }
-      const price = Number(data.price)
-      const isDemo = price <= 0 || (data.features as { is_demo?: boolean })?.is_demo === true
-      if (isDemo) {
+      const row = {
+        price: Number(data.price),
+        price_usd: data.price_usd != null ? Number(data.price_usd) : null,
+        features: (data.features as Record<string, unknown>) || null,
+      }
+      if (planIsDemo(row, pricingRegion)) {
         setGlobalError('This plan does not require payment. Use Register for the free demo.')
         setPlan(null)
         return
@@ -136,15 +157,16 @@ export function CheckoutForm() {
       setPlan({
         id: data.id,
         name: data.name,
-        price,
+        price: row.price,
+        price_usd: row.price_usd,
         duration_months: data.duration_months,
-        features: (data.features as Record<string, unknown>) || null,
+        features: row.features,
       })
     })()
     return () => {
       cancelled = true
     }
-  }, [planId])
+  }, [planId, pricingRegion])
 
   const update = (field: keyof FormData, value: string) => {
     setForm((f) => ({ ...f, [field]: value }))
@@ -273,6 +295,7 @@ export function CheckoutForm() {
     checkout({
       planId: plan.id,
       gymId,
+      pricingRegion,
       prefill: {
         name: form.full_name,
         email: form.email,
@@ -294,9 +317,6 @@ export function CheckoutForm() {
       onDismiss: () => setPaying(false),
     })
   }
-
-  const formatInr = (n: number) =>
-    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
 
   if (!planId) {
     return (
@@ -328,16 +348,21 @@ export function CheckoutForm() {
     )
   }
 
-  const totalIncl = subscriptionTotalWithGst(plan.price)
+  const listPrice = planListAmount(plan, pricingRegion)
+  const totalCharged = planChargeTotal(plan, pricingRegion, gstEnabled)
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
       <h2 className="text-2xl font-bold text-foreground mb-1">Subscribe to {plan.name}</h2>
       <p className="text-sm text-muted-foreground mb-2">
-        {formatInr(plan.price)} + GST · {formatSubscriptionBillingSuffix(plan.duration_months)} · Total{' '}
-        <span className="text-foreground font-semibold">{formatInr(totalIncl)}</span> incl. GST
+        {formatPlanMoney(listPrice, pricingRegion)}
+        {showInr ? ' + GST' : ''} · {formatSubscriptionBillingSuffix(plan.duration_months)} · Total{' '}
+        <span className="text-foreground font-semibold">{formatPlanMoney(totalCharged, pricingRegion)}</span>
+        {showInr ? ' incl. GST' : ''}
       </p>
-      <p className="text-xs text-muted-foreground mb-6">Account → gym details → secure payment (Razorpay).</p>
+      <p className="text-xs text-muted-foreground mb-6">
+        Account → gym details → secure payment ({getPaymentProvider() === 'stripe' ? 'Stripe' : 'Razorpay'}).
+      </p>
 
       <div className="flex items-center mb-8">
         {steps.map((s, i) => (
@@ -365,7 +390,14 @@ export function CheckoutForm() {
           <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
             <Field id="co-name" label="Full Name" {...f('full_name')} placeholder="Your name" />
             <Field id="co-email" label="Email" type="email" {...f('email')} placeholder="you@example.com" />
-            <Field id="co-phone" label="Phone" type="tel" {...f('phone')} placeholder="+91 98765 43210" note="Used for Razorpay prefill" />
+            <Field
+              id="co-phone"
+              label="Phone"
+              type="tel"
+              {...f('phone')}
+              placeholder="+91 98765 43210"
+              note={getPaymentProvider() === 'stripe' ? 'Optional — may prefill Stripe checkout' : 'Used for Razorpay prefill'}
+            />
             <div>
               <label htmlFor="co-pw" className="block text-sm font-medium text-foreground mb-1.5">
                 Password
@@ -450,7 +482,9 @@ export function CheckoutForm() {
               <CreditCard className="w-7 h-7 text-brand-400" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Pay <span className="text-foreground font-semibold">{formatInr(totalIncl)}</span> incl. GST via Razorpay. Webhooks confirm on the server.
+              Pay <span className="text-foreground font-semibold">{formatPlanMoney(totalCharged, pricingRegion)}</span>
+              {showInr && gstEnabled ? ' incl. GST' : ''} via{' '}
+              {getPaymentProvider() === 'stripe' ? 'Stripe' : 'Razorpay'}. Webhooks confirm on the server.
             </p>
             {globalError && <p className="text-sm text-destructive">{globalError}</p>}
             <button

@@ -25,8 +25,10 @@ import {
   CheckCircle2,
   MessageSquare,
 } from 'lucide-react'
-import { cn, formatSubscriptionBillingSuffix, subscriptionChargeTotal } from '@/lib/utils'
+import { cn, formatSubscriptionBillingSuffix } from '@/lib/utils'
 import { publicPricingFeatureLines } from '@/lib/subscriptionPlanFeatures'
+import { usePricingRegion } from '@/lib/use-pricing-region'
+import { formatPlanMoney, planChargeTotal, planIsDemo, planListAmount } from '@/lib/plan-pricing'
 
 function LandingFeatureIcon({ name, className }: { name: string; className?: string }) {
   const Cmp =
@@ -75,10 +77,6 @@ const FAQS = [
     a: 'Fetch Fitness supports cash, card, UPI, bank transfer, and online payments for member billing.',
   },
 ]
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price)
-}
 
 type EnquiryFormState = { full_name: string; phone: string; email: string; message: string }
 
@@ -217,6 +215,8 @@ export function LandingPage({
   gstEnabled?: boolean
 }) {
   const router = useRouter()
+  const { region: pricingRegion, ready: pricingReady } = usePricingRegion()
+  const showInr = pricingRegion === 'IN'
   const [mobileNav, setMobileNav] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
@@ -436,7 +436,9 @@ export function LandingPage({
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold">Demo & yearly plans</h2>
             <p className="mt-3 text-muted-foreground">
-              90-day demo at no charge, then yearly tiers{gstEnabled ? ' (excl. GST, 18% at checkout)' : ''}. Upgrade anytime.
+              90-day demo at no charge, then yearly tiers
+              {pricingReady && showInr && gstEnabled ? ' (INR, excl. GST — 18% at checkout in India)' : ''}
+              {pricingReady && !showInr ? ' (USD for international visitors)' : ''}. Upgrade anytime.
             </p>
           </div>
 
@@ -455,10 +457,12 @@ export function LandingPage({
                   const cap = plan.max_members ?? (features as Record<string, unknown>).max_members
                   const memberCap = cap != null && cap !== '' ? Number(cap) : null
                   const membersUnlimited = memberCap !== null && Number.isFinite(memberCap) && memberCap <= 0
-                  const isDemoPlan = Number(plan.price) <= 0 || features.is_demo === true
+                  const isDemoPlan = planIsDemo(plan, pricingRegion)
                   const demoDays = typeof features.demo_period_days === 'number' ? features.demo_period_days : 90
                   const popular = !isDemoPlan && plan.name === 'Pro'
                   const pricingLines = publicPricingFeatureLines(plan)
+                  const listPrice = planListAmount(plan, pricingRegion)
+                  const totalCharged = planChargeTotal(plan, pricingRegion, gstEnabled)
                   return (
                     <div
                       key={plan.id}
@@ -483,7 +487,7 @@ export function LandingPage({
                         {isDemoPlan ? (
                           <>
                             <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                              <span className="text-3xl font-extrabold text-foreground">{formatPrice(0)}</span>
+                              <span className="text-3xl font-extrabold text-foreground">{formatPlanMoney(0, pricingRegion)}</span>
                               <span className="text-sm text-muted-foreground">· {demoDays} days</span>
                             </div>
                             <p className="text-xs text-emerald-400 font-medium">No payment · full platform access for the demo period</p>
@@ -507,8 +511,8 @@ export function LandingPage({
                         ) : (
                           <>
                             <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                              <span className="text-3xl font-extrabold text-foreground">{formatPrice(plan.price)}</span>
-                              {gstEnabled && <span className="text-sm text-muted-foreground">+ GST (18%)</span>}
+                              <span className="text-3xl font-extrabold text-foreground">{formatPlanMoney(listPrice, pricingRegion)}</span>
+                              {showInr && gstEnabled && <span className="text-sm text-muted-foreground">+ GST (18%)</span>}
                               <span className="text-sm text-muted-foreground">{formatSubscriptionBillingSuffix(Number(plan.duration_months))}</span>
                             </div>
                             {memberCap !== null && Number.isFinite(memberCap) && (
@@ -521,15 +525,15 @@ export function LandingPage({
                                 ) : (
                                   <>
                                     <span className="text-sm font-semibold text-muted-foreground">Up to</span>
-                                    <span className="text-brand-400">{memberCap.toLocaleString('en-IN')}</span>
+                                    <span className="text-brand-400">{memberCap.toLocaleString(showInr ? 'en-IN' : 'en-US')}</span>
                                     <span className="text-base sm:text-lg font-semibold text-muted-foreground">members</span>
                                   </>
                                 )}
                               </p>
                             )}
                             <p className="text-xs text-muted-foreground">
-                              Total {formatPrice(subscriptionChargeTotal(Number(plan.price), gstEnabled))}
-                              {gstEnabled ? ' incl. GST' : ''}
+                              Total {formatPlanMoney(totalCharged, pricingRegion)}
+                              {showInr && gstEnabled ? ' incl. GST' : ''}
                               {Number(plan.duration_months) >= 12 ? ' · 365 days' : ''}
                             </p>
                           </>

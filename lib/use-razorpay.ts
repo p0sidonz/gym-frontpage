@@ -2,6 +2,8 @@
 
 import { useCallback, useRef } from 'react'
 import { edgeFunctionAnonHeaders, supabase } from '@/lib/supabase'
+import { getPaymentProvider } from '@/lib/payment-provider'
+import { getPricingRegionFromBrowser, type PricingRegion } from '@/lib/pricing-locale'
 
 const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || ''
 const SCRIPT_SRC = 'https://checkout.razorpay.com/v1/checkout.js'
@@ -36,6 +38,13 @@ interface CheckoutParams {
   onError: (err: string) => void
   /** Called when the Razorpay modal is closed without a successful payment (user cancelled, back, or checkout error UI). */
   onDismiss?: () => void
+  /**
+   * Origin for Stripe return URLs (success/cancel). Defaults to `window.location.origin`.
+   * Set to the main app origin when paying from the Vite app (e.g. gym settings upgrade).
+   */
+  returnOrigin?: string
+  /** Defaults to browser timezone (India → IN, else INTL). */
+  pricingRegion?: PricingRegion
 }
 
 type RazorpayPaymentResponse = {
@@ -63,6 +72,15 @@ function getRazorpayConstructor(): RazorpayConstructor {
   return w.Razorpay
 }
 
+async function userEdgeHeaders(): Promise<Record<string, string>> {
+  const { data: sess } = await supabase.auth.getSession()
+  if (!sess.session) throw new Error('You must be signed in to pay.')
+  return {
+    Authorization: `Bearer ${sess.session.access_token}`,
+    apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+  }
+}
+
 export function useRazorpay() {
   const busyRef = useRef(false)
 
@@ -71,10 +89,51 @@ export function useRazorpay() {
     busyRef.current = true
 
     try {
+      const pricingRegion = params.pricingRegion ?? getPricingRegionFromBrowser()
+
+      if (getPaymentProvider() === 'stripe') {
+        if (!params.gymId) {
+          busyRef.current = false
+          params.onError('Gym is required for checkout. Open checkout from pricing after signing up.')
+          return
+        }
+        const origin = (params.returnOrigin || (typeof window !== 'undefined' ? window.location.origin : '')).replace(
+          /\/$/,
+          '',
+        )
+        if (!origin) {
+          busyRef.current = false
+          params.onError('Could not resolve return URL for Stripe.')
+          return
+        }
+        const success_url = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`
+        const cancel_url = `${origin}/checkout?planId=${encodeURIComponent(params.planId)}`
+
+        const { data, error } = await supabase.functions.invoke('stripe-payment', {
+          body: {
+            action: 'create-checkout-session',
+            plan_id: params.planId,
+            gym_id: params.gymId,
+            success_url,
+            cancel_url,
+            customer_email: params.prefill?.email,
+            customer_name: params.prefill?.name,
+            pricing_region: pricingRegion,
+          },
+          headers: await userEdgeHeaders(),
+        })
+
+        if (error || !(data as { url?: string })?.url) {
+          throw new Error(error?.message || (data as { error?: string })?.error || 'Could not start Stripe checkout')
+        }
+        window.location.href = (data as { url: string }).url
+        return
+      }
+
       await loadScript()
 
       const { data: orderData, error: fnErr } = await supabase.functions.invoke('razorpay-payment', {
-        body: { action: 'create-order', plan_id: params.planId, gym_id: params.gymId },
+        body: { action: 'create-order', plan_id: params.planId, gym_id: params.gymId, pricing_region: pricingRegion },
         headers: edgeFunctionAnonHeaders(),
       })
 
@@ -96,7 +155,6 @@ export function useRazorpay() {
       const Rzp = getRazorpayConstructor()
       const rzp = new Rzp({
         key: RAZORPAY_KEY,
-        // INR subunits (paise); matches Orders API (GST-inclusive or base, per platform_settings.gst_enabled).
         amount: Math.round(Number(od.amount)),
         currency: od.currency,
         name: 'Fetch Fitness',
