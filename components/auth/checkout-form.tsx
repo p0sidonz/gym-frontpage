@@ -483,8 +483,7 @@ export function CheckoutForm() {
             </div>
             <p className="text-sm text-muted-foreground">
               Pay <span className="text-foreground font-semibold">{formatPlanMoney(totalCharged, pricingRegion)}</span>
-              {showInr && gstEnabled ? ' incl. GST' : ''} via{' '}
-              {getPaymentProvider() === 'stripe' ? 'Stripe' : 'Razorpay'}. Webhooks confirm on the server.
+              {showInr && gstEnabled ? ' incl. GST' : ''} securely via Razorpay.
             </p>
             {globalError && <p className="text-sm text-destructive">{globalError}</p>}
             <button
