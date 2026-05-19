@@ -9,6 +9,8 @@ import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { LandingFeatureCardRow, SubscriptionPlanRow } from '@/lib/fetch-landing-data'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { SiteHeader } from '@/components/site-header'
+import { SiteFooter } from '@/components/site-footer'
 import * as LucideIcons from 'lucide-react'
 import {
   Dumbbell,
@@ -263,81 +265,7 @@ export function LandingPage({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="fixed top-0 inset-x-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 h-16">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center">
-              <Dumbbell className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-foreground">Fetch Fitness</span>
-          </Link>
-
-          <div className="hidden md:flex items-center gap-6">
-            {['features', 'how-it-works', 'pricing', 'testimonials', 'faq', 'contact'].map((id) => (
-              <button
-                key={id}
-                onClick={() => scrollTo(id)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors capitalize"
-              >
-                {id === 'contact' ? 'Contact' : id.replace(/-/g, ' ')}
-              </button>
-            ))}
-          </div>
-
-          <div className="hidden md:flex items-center gap-3">
-            <ThemeToggle />
-            <Link
-              href="/login"
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/register"
-              className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold transition-colors"
-            >
-              Get Started Free
-            </Link>
-          </div>
-
-          <div className="flex md:hidden items-center gap-1">
-            <ThemeToggle />
-            <button type="button" className="p-2 text-muted-foreground" onClick={() => setMobileNav(!mobileNav)}>
-              {mobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-
-        {mobileNav && (
-          <div className="md:hidden border-t border-border bg-background px-4 py-4 space-y-3">
-            {['features', 'how-it-works', 'pricing', 'testimonials', 'faq', 'contact'].map((id) => (
-              <button
-                key={id}
-                onClick={() => scrollTo(id)}
-                className="block w-full text-left text-sm text-muted-foreground hover:text-foreground capitalize py-1.5"
-              >
-                {id === 'contact' ? 'Contact' : id.replace(/-/g, ' ')}
-              </button>
-            ))}
-            <div className="flex gap-3 pt-3 border-t border-border">
-              <Link
-                href="/login"
-                className="flex-1 text-center py-2.5 rounded-lg border border-border text-sm font-medium"
-                onClick={() => setMobileNav(false)}
-              >
-                Log in
-              </Link>
-              <Link
-                href="/register"
-                className="flex-1 text-center py-2.5 rounded-lg bg-brand-500 text-white text-sm font-semibold"
-                onClick={() => setMobileNav(false)}
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        )}
-      </nav>
+      <SiteHeader />
 
       <section className="pt-28 sm:pt-36 pb-16 sm:pb-24 px-4 sm:px-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.15),transparent)]" />
@@ -694,73 +622,7 @@ export function LandingPage({
         </div>
       </section>
 
-      <footer className="border-t border-border py-12 px-4 sm:px-6 bg-black/5 dark:bg-white/[0.02]">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8">
-          <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
-                <Dumbbell className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold text-foreground">Fetch Fitness</span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">The all-in-one SaaS platform for modern gyms and fitness studios.</p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-foreground text-sm mb-3">Product</h4>
-            <div className="space-y-2">
-              <button type="button" onClick={() => scrollTo('features')} className="block text-xs text-muted-foreground hover:text-foreground">
-                Features
-              </button>
-              <button type="button" onClick={() => scrollTo('pricing')} className="block text-xs text-muted-foreground hover:text-foreground">
-                Pricing
-              </button>
-              <button type="button" onClick={() => scrollTo('testimonials')} className="block text-xs text-muted-foreground hover:text-foreground">
-                Testimonials
-              </button>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-semibold text-foreground text-sm mb-3">Company</h4>
-            <div className="space-y-2">
-              <button type="button" onClick={() => scrollTo('faq')} className="block text-xs text-muted-foreground hover:text-foreground">
-                FAQ
-              </button>
-              <button type="button" onClick={() => scrollTo('contact')} className="block text-xs text-muted-foreground hover:text-foreground">
-                Contact
-              </button>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-semibold text-foreground text-sm mb-3">Legal</h4>
-            <div className="space-y-2">
-              <Link href="/support" className="block text-xs text-muted-foreground hover:text-foreground">
-                Support
-              </Link>
-              <Link href="/terms" className="block text-xs text-muted-foreground hover:text-foreground">
-                Terms of Service
-              </Link>
-              <Link href="/privacy" className="block text-xs text-muted-foreground hover:text-foreground">
-                Privacy Policy
-              </Link>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-semibold text-foreground text-sm mb-3">Account</h4>
-            <div className="space-y-2">
-              <Link href="/login" className="block text-xs text-muted-foreground hover:text-foreground">
-                Log in
-              </Link>
-              <Link href="/register" className="block text-xs text-muted-foreground hover:text-foreground">
-                Register
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} Fetch Fitness. All rights reserved.</p>
-          <p className="text-xs text-muted-foreground">Made in India</p>
-        </div>
-      </footer>
+      <SiteFooter />
 
       {toast && (
         <div
