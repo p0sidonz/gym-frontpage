@@ -30,7 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 
-gtag('config', 'G-NKFJHKNCKH');`}
+gtag('config', 'G-NKFJHKNCKH');
+gtag('config', 'AW-16853228766');`}
         </Script>
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
