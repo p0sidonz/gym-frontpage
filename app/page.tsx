@@ -9,7 +9,7 @@ import { subscriptionChargeTotal } from '@/lib/utils'
 
 /** Revalidate public pricing & features periodically for fresh SEO without hitting DB every request. */
 export const revalidate = 120
-
+//testworkout
 function buildSoftwareJsonLd(plans: SubscriptionPlanRow[], featureTitles: string[], gstEnabled: boolean) {
   const paid = plans.filter(
     (p) => Number(p.price) > 0 && (p.features as { is_demo?: boolean } | undefined)?.is_demo !== true,
